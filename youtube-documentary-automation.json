@@ -1,0 +1,539 @@
+{
+  "name": "YouTube Documentary Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        1216,
+        -192
+      ],
+      "id": "219d04d3-57bc-4bfe-b2e0-d2202a34fe06",
+      "name": "When chat message received",
+      "webhookId": "bfa33bf7-3668-49e4-adc9-c3ebf7400f5e"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the final script writer for a long-form historical documentary YouTube channel.\n\nTransform the completed chapter drafts below into ONE continuous, polished documentary script.\n\nThe documentary is designed as a calm, immersive bedtime-history experience.\n\nTARGET LENGTH:\nApproximately 15,000 words.\nThe final length can be somewhat shorter or longer when the story naturally requires it.\n\nWRITING STYLE:\n- Calm and immersive\n- Cinematic and descriptive\n- Historically grounded\n- Engaging without being sensational\n- Slightly mysterious when appropriate\n- Simple, natural English\n- Smooth narration suitable for voiceover\n- No academic or textbook-like language\n\nIMPORTANT HISTORICAL RULES:\n- Preserve the historical substance of the chapters.\n- Correct obvious inaccuracies, anachronisms, exaggerated claims, or unsupported statements.\n- Do not invent facts, quotations, people, dates, events, or statistics.\n- If information is uncertain or disputed, present it appropriately.\n- Do not present legends as established historical fact.\n\nSTRUCTURE:\n- Keep the chapter progression and overall story.\n- Create smooth transitions between chapters.\n- Remove unnecessary repetition.\n- Make the entire documentary feel like one continuous story.\n- Do not introduce the next chapter prematurely.\n\nCHAPTER MARKERS (REQUIRED):\n\nThe COMPLETED CHAPTERS section below labels each chapter block with a\nheader line in this exact format, on its own line, immediately\nfollowed by that chapter's draft text:\n\nCHAPTER <number>: <title>\n\nThat header is INPUT DATA, not something to copy as-is. When you\nencounter one of these headers while writing, extract ONLY the\n<title> portion - everything after the colon - and use it to produce\nONE marker line, on its own line, in this exact format:\n\n[[CHAPTER <number>: <title>]]\n\nExample:\nIf the input header reads:\nCHAPTER 3: The Long Winter Sets In\n\nYour marker must be:\n[[CHAPTER 3: The Long Winter Sets In]]\n\nNOT:\n[[CHAPTER 3: CHAPTER 3: The Long Winter Sets In]]\nNOT:\n[[CHAPTER 3: CHAPTER 3: ]]\n\nDo not include the word \"CHAPTER\" or the chapter number a second time\ninside the title portion. Do not add any other text, punctuation, or\ncommentary on that line. Do not repeat the marker anywhere else in\nthat chapter.\n\nThis marker is the ONLY exception to the \"no headings\" rule below.\nEverything else must remain pure narration.\n\nDO NOT:\n- Add any headings other than the required CHAPTER MARKER lines above.\n- Use bullet points.\n- Use numbered lists.\n- Add production notes.\n- Add image instructions.\n- Add sound effects.\n- Add stage directions.\n- Mention AI.\n- Mention these instructions.\n- Explain your writing process.\n- Add a separate summary at the end.\n\nOUTPUT:\nReturn ONLY the finished documentary narration.\n\nTOPIC:\n{{ $json.topic }}\n\nCOMPLETED CHAPTERS:\n{{ $json.completed_chapters }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2800,
+        -192
+      ],
+      "id": "17c42a34-e7b5-49c9-873b-1e6fde83323e",
+      "name": "Final Script Writer"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Prompt Library').first().json.chapter_prompt }}\n\nIMPORTANT:\nThe prompt above contains placeholders for the approved outline and chapter.\n\nUse the actual chapter information from the current input.\n\nChapter Number:\n{{ $json.chapter_number }}\n\nChapter Title:\n{{ $json.title }}\n\nChapter Outline:\n{{ $json.outline }}\n\nTarget Word Count:\nApproximately {{ $json.approx_word_count }} words.\n\nWrite ONLY this chapter.\n\nDo not literally output placeholders such as:\n[PASTE FULL OUTLINE HERE]\n[PASTE CHAPTER/SECTION HERE]\n\nUse the actual information supplied above.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2112,
+        -192
+      ],
+      "id": "1f6a2863-acf6-4b70-aa06-9f19616010b5",
+      "name": "Chapter Writer"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Prompt Library').first().json.outline_prompt }}\n\nIMPORTANT:\nThe actual topic is:\n\n{{ $('Prompt Library').first().json.chatInput }}\n\nUse the research results below to improve historical accuracy.\n\nRESEARCH RESULTS:\n\n{{ JSON.stringify($json) }}\n\nRESEARCH RULES:\n- Prefer reliable historical sources.\n- Cross-check important dates, people, places, and events.\n- Do not blindly accept a search result.\n- Do not invent information when the sources are unclear.\n- Distinguish established facts from disputed claims, legends, or later traditions.\n- Use the research as evidence for the outline, not as text to copy.\n- The final outline should remain natural and suitable for a long-form bedtime-history documentary.\n\nReplace [INSERT TOPIC] in the original prompt with the actual topic above.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1648,
+        -192
+      ],
+      "id": "31b83b11-c49f-486c-bc43-d7fb14d6f5d5",
+      "name": "Outline Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Image Prompt Generator for a long-form historical YouTube documentary.\n\nYour job is to read the COMPLETE FINAL SCRIPT provided at the bottom of this prompt and create a complete sequence of cinematic image prompts that visually covers the ENTIRE documentary from the first paragraph to the final paragraph.\n\n==================================================\nCHAPTER MARKERS IN THE SCRIPT\n==================================================\n\nThe script contains literal marker lines in this exact format:\n\n[[CHAPTER <number>: <title>]]\n\nEach marker appears once, immediately before that chapter's narration begins, and marks the start of a new chapter. The chapter continues until the next marker or the end of the script.\n\nTreat every marker as the ONLY source of truth for chapter number and chapter title. Copy the number and title EXACTLY as they appear inside the brackets. Do not reword them, translate them, or invent your own titles.\n\nDo NOT use narration text as a chapter title under any circumstance. If you cannot find a marker covering a given passage, use the most recent marker seen before that passage.\n\nDo NOT include the literal marker text (the \"[[CHAPTER ...]]\" line itself) in any Narration covered, What the image should show, or Image prompt field. It exists only to tell you where chapters begin.\n\n==================================================\nCORE REQUIREMENT\n==================================================\n\nThis script is divided into multiple chapters, each marked with a [[CHAPTER ...]] line.\n\nFor EVERY chapter marker you encounter, generate BETWEEN 4 AND 6 image scenes for that chapter before moving on to the next one. Do not generate fewer than 4 scenes for any chapter, and do not exceed 6 unless a chapter is unusually long and clearly requires more for full coverage.\n\nDistribute those 4-6 scenes evenly across that chapter's narration, from the sentence right after its marker to the sentence right before the next marker (or the end of the script for the final chapter).\n\nDo NOT stop after the introduction.\n\nDo NOT stop after the first chapter.\n\nDo NOT stop because the response has become long.\n\nContinue until you have processed every single [[CHAPTER ...]] marker in the script, in order, including the last one.\n\nThe total number of scenes will naturally scale with the number of chapters in the script (for example, 12 chapters x 5 scenes ≈ 60 scenes). Do not target a fixed total number directly - target 4-6 scenes PER CHAPTER instead, and let the total follow from that.\n\n==================================================\nHOW TO SELECT SCENES WITHIN A CHAPTER\n==================================================\n\nWithin each chapter's 4-6 scenes, create a new scene whenever the viewer would benefit from a meaningful visual change.\n\nPrioritize:\n\n- New locations\n- Important historical people\n- New characters\n- Historical events\n- Changes in time\n- Important actions\n- Battles and conflicts\n- Travel\n- Buildings\n- Architecture\n- Daily life\n- Work and occupations\n- Food\n- Clothing\n- Transportation\n- Weapons\n- Tools\n- Important objects\n- Political meetings\n- Social situations\n- Important discoveries\n- Major developments\n- Emotional moments\n- Dramatic moments\n- Changes in weather or environment\n- Important consequences of events\n\nAvoid generating multiple images that are essentially identical.\n\nEach image should add useful visual information to the documentary.\n\n==================================================\nCHARACTERS\n==================================================\n\nIf a specific historical person is important to the scene, include their name in the Character field.\n\nIf there is no specific person, leave the Character field empty.\n\nFor recurring historical people, maintain visual consistency whenever the script provides enough information to do so.\n\nDo not incorrectly place a famous historical person into a scene simply because they existed during the same period.\n\nOnly include a person when the narration makes them relevant to the scene.\n\n==================================================\nHISTORICAL ACCURACY\n==================================================\n\nAll images must accurately represent the historical period, geographical location, and circumstances described by the narration.\n\nPay close attention to:\n\n- Architecture\n- Buildings\n- Clothing\n- Hairstyles\n- Tools\n- Weapons\n- Furniture\n- Transportation\n- Food\n- Landscapes\n- Weather\n- Materials\n- Lighting\n- Social customs\n- Military equipment\n- Ships\n- Roads\n- Settlements\n- Interiors\n\nDo NOT introduce modern:\n\n- Clothing\n- Buildings\n- Vehicles\n- Technology\n- Weapons\n- Tools\n- Furniture\n- Signs\n- Materials\n- Electrical lighting\n- Graphic design elements\n\nunless the narration specifically requires them.\n\n==================================================\nVISUAL STYLE\n==================================================\n\nCreate cinematic historical-documentary imagery suitable for a professional YouTube history channel.\n\nThe images should feel realistic, immersive, atmospheric, and historically grounded.\n\nUse:\n\n- Cinematic composition\n- Realistic human proportions\n- Natural facial expressions\n- Realistic body language\n- Detailed environments\n- Authentic historical objects\n- Historically appropriate clothing\n- Detailed architecture\n- Strong depth\n- Natural perspective\n- Atmospheric lighting\n- Cinematic framing\n- Rich environmental detail\n- Professional historical-documentary realism\n- Somber and immersive atmosphere when appropriate\n\nUse different camera compositions throughout the documentary.\n\nExamples include:\n\n- Wide establishing shots\n- Medium shots\n- Close portraits\n- Over-the-shoulder shots\n- Low-angle shots\n- High-angle shots\n- Interior compositions\n- Environmental portraits\n- Landscape shots\n- Action compositions\n- Tracking-style compositions\n- Architectural establishing shots\n\nDo not use the same camera composition repeatedly.\n\n==================================================\n17th–18th CENTURY COLONIAL AMERICA\n==================================================\n\nWhen the narration concerns 17th–18th century colonial America, appropriate visual details may include:\n\n- Timber buildings\n- Stone buildings\n- Small windows\n- Wooden meetinghouses\n- Rough roads\n- Muddy paths\n- Wool clothing\n- Linen clothing\n- Bonnets\n- Tricorn hats\n- Period military uniforms\n- Flintlock muskets\n- Wooden tools\n- Candles\n- Tallow candles\n- Lanterns\n- Sailing ships\n- Horse-drawn transportation\n- Dense forests\n- Colonial farms\n- Taverns\n- Parchment\n- Quill pens\n\nUse a restrained historical palette such as:\n\n- Browns\n- Charcoal\n- Muted blue\n- Faded red\n- Parchment tones\n- Natural earth tones\n\nLighting may include:\n\n- Candlelight\n- Lantern light\n- Moonlight\n- Cold daylight\n- Warm sunlight\n- Overcast skies\n\nUse a dark historical painting / cinematic realism feeling when appropriate.\n\nKeep violence and suffering non-graphic.\n\nIMPORTANT:\n\nDo NOT apply colonial-American visual details to periods or locations where they do not belong.\n\n==================================================\nIMAGE PROMPT QUALITY\n==================================================\n\nEvery Image prompt must be detailed and self-contained.\n\nEach prompt should clearly communicate:\n\n1. Main subject\n2. What is happening\n3. Environment\n4. Historical period\n5. Location when relevant\n6. Clothing\n7. Important objects\n8. Camera angle or composition\n9. Lighting\n10. Atmosphere and mood\n\nDo not write vague prompts.\n\nBAD:\n\n\"People in an old village.\"\n\nGOOD:\n\n\"A cinematic wide establishing shot of a small 18th-century colonial settlement at dawn, rough timber houses with small-paned windows lining a muddy road, several settlers walking between the buildings carrying wooden tools, women wearing simple wool and linen garments with period bonnets, men in coarse coats and breeches, thin smoke rising from stone chimneys, dense forest surrounding the settlement, pale morning sunlight filtering through low mist, muted brown and charcoal palette, historically accurate materials and architecture, atmospheric historical-documentary realism.\"\n\n==================================================\nNARRATION COVERAGE\n==================================================\n\nThe \"Narration covered\" field should briefly describe the specific portion of narration represented by that image.\n\nDo not simply repeat the entire paragraph.\n\nIt should help identify which part of the documentary the image belongs to.\n\n==================================================\nWHAT THE IMAGE SHOULD SHOW\n==================================================\n\nThe \"What the image should show\" field should be a short practical description of the visual scene.\n\nThe detailed generation instructions belong in the \"Image prompt\" field.\n\n==================================================\nOUTPUT FORMAT — VERY IMPORTANT\n==================================================\n\nOutput ONLY the scene entries.\n\nDo NOT output JSON.\n\nDo NOT output CSV.\n\nDo NOT output a markdown table.\n\nDo NOT output XML.\n\nDo NOT use a code block.\n\nDo NOT put the scenes inside quotation marks.\n\nDo NOT add an introduction.\n\nDo NOT add an explanation.\n\nDo NOT add a conclusion.\n\nDo NOT add comments before Scene 1.\n\nDo NOT add comments after the final scene.\n\nThe first characters of your response MUST be:\n\nScene 1\n\nUse EXACTLY this structure:\n\nScene 1\n- Chapter: [chapter number and exact title]\n- Character: [character name/description or leave empty]\n- Narration covered: [brief description of the exact portion of narration represented]\n- What the image should show: [brief visual description]\n- Image prompt: [complete detailed image-generation prompt]\n\nScene 2\n- Chapter: [chapter number and exact title]\n- Character: [character name/description or leave empty]\n- Narration covered: [brief description]\n- What the image should show: [brief visual description]\n- Image prompt: [complete detailed image-generation prompt]\n\nScene 3\n- Chapter: [chapter number and exact title]\n- Character: [character name/description or leave empty]\n- Narration covered: [brief description]\n- What the image should show: [brief visual description]\n- Image prompt: [complete detailed image-generation prompt]\n\nContinue:\n\nScene 4\nScene 5\nScene 6\nScene 7\nScene 8\nScene 9\nScene 10\n...\n\nContinue sequentially, chapter by chapter, until every [[CHAPTER ...]] marker in the script has been processed and each has received 4-6 scenes.\n\n==================================================\nCRITICAL COMPLETION RULE\n==================================================\n\nBefore stopping, internally verify all of the following:\n\n1. You located every single [[CHAPTER ...]] marker in the script.\n2. Every chapter received AT LEAST 4 scenes.\n3. No chapter received MORE than 6 scenes, unless it was unusually long and needed more for full coverage.\n4. Every Chapter field was copied exactly from a marker - never invented, never taken from narration text.\n5. You reached the FINAL marker in the script, and generated 4-6 scenes for it too.\n6. The final scenes represent the END of the documentary, not the middle.\n7. Scene numbers are sequential across the entire response.\n8. Every scene contains a Chapter field.\n9. Every scene contains a Character field, even if empty.\n10. Every scene contains a Narration covered field.\n11. Every scene contains a What the image should show field.\n12. Every scene contains an Image prompt field.\n13. You did not stop after the introduction or the first few chapters.\n\nMost importantly:\n\nPROCESS EVERY CHAPTER MARKER, IN ORDER, ALL THE WAY TO THE END OF THE SCRIPT.\n\n==================================================\nFINAL SCRIPT\n==================================================\n\n{{ $json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2800,
+        112
+      ],
+      "id": "50ef0fb5-68c8-4fe9-a2b0-f4855416b9d5",
+      "name": "Image Prompt Generator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (items.length === 0) {\n  throw new Error(\"No chapter data received.\");\n}\n\nlet chapters = [];\n\n// Handle Aggregate output\nif (items.length === 1) {\n  const json = items[0].json;\n\n  if (Array.isArray(json.chapters)) {\n    chapters = json.chapters;\n  } else if (Array.isArray(json.data)) {\n    chapters = json.data;\n  } else {\n    chapters = items.map(item => item.json);\n  }\n} else {\n  chapters = items.map(item => item.json);\n}\n\nif (chapters.length === 0) {\n  throw new Error(\"No chapters found after aggregation.\");\n}\n\nchapters.sort((a, b) =>\n  Number(a.chapter_number || 0) -\n  Number(b.chapter_number || 0)\n);\n\nconst combinedChapters = chapters.map((chapter, index) => {\n  const chapterText =\n    chapter.output ??\n    chapter.text ??\n    chapter.content ??\n    chapter.chapter ??\n    \"\";\n\n  return `CHAPTER ${chapter.chapter_number || index + 1}: ${chapter.title || \"\"}\n\n${chapterText}`;\n}).join(\"\\n\\n========================================\\n\\n\");\n\nreturn [\n  {\n    json: {\n      topic: chapters[0]?.topic ||\n             $('Prompt Library').first().json.chatInput ||\n             \"\",\n      chapter_count: chapters.length,\n      completed_chapters: combinedChapters\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        -192
+      ],
+      "id": "17aa8303-d335-405b-a852-162dd95b958e",
+      "name": "Prepare Final Script Input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9d502c87-4b52-47d6-acbd-cbb1c50f3e2b",
+              "name": "outline_prompt",
+              "value": "2. Detailed Video Outline I want to create a long-form YouTube historical documentary/bedtime-history video. The topic is: [INSERT TOPIC] I want the finished script to eventually be around 15,000 words, but do not write the script yet. First, create a detailed chapter-by-chapter outline that will serve as the blueprint for the entire script. The outline should contain at least 15 chapters, with enough material in each chapter to contribute meaningfully to a 15,000-word documentary. Build the story logically so that the viewer is gradually taken deeper into the subject. Depending on the topic, the structure may include background, people, places, events, everyday life, conflicts, turning points, strange details, consequences, and the eventual historical significance. Use whatever structure best fits the specific subject rather than forcing a generic template. For every chapter, provide: •\tChapter number •\tChapter title •\tThe purpose of the chapter •\tThe major events, people, places, and ideas that should be covered •\tImportant historical details that should be included •\tInteresting or surprising details that could make the narration engaging •\tHow the chapter connects to the next chapter •\tApproximate word count Aim for a natural narrative progression rather than making the outline feel like a textbook. The eventual video should feel immersive and easy to listen to while still being historically informative and accurate. Avoid unnecessarily repeating information between chapters. Where the historical record is uncertain, disputed, or based partly on later accounts or legends, clearly distinguish that from well-established historical evidence. Do not write the full script yet. I only want the detailed outline at this stage.",
+              "type": "string"
+            },
+            {
+              "id": "f36c8c6e-9a1e-40ae-901e-664cdc83f258",
+              "name": "chapter_prompt",
+              "value": "3. Chapter-by-Chapter Script Generation  I’m going to give you the approved outline for a long-form historical YouTube documentary. Follow the outline carefully and preserve the intended narrative progression. For now, write only the chapter I provide below. The chapter should be approximately 1,000–1,100 words. The writing should feel like a strong YouTube documentary narration rather than an academic essay. Aim for a tone that is: •\tRelaxed •\tConversational •\tImmersive •\tInformative •\tEngaging •\tEasy to listen to •\tOccasionally lightly humorous when appropriate Use clear, natural English. Avoid unnecessarily complicated vocabulary, overly formal academic language, and sentences that feel difficult to follow when spoken aloud. The narration should make the listener feel as though they are being taken into the historical world rather than simply being given a list of facts. Use storytelling naturally: •\tIntroduce people and places with enough context to make them understandable. •\tExplain unfamiliar historical customs and concepts. •\tInclude interesting details when they genuinely add to the story. •\tVary sentence length and pacing. •\tUse occasional rhetorical questions or small observations where they feel natural. •\tAllow quieter moments when the subject calls for them. •\tUse humor sparingly and appropriately; never make serious historical suffering feel comedic. Do not turn the chapter into a list of facts. Do not add unnecessary headings, bullet points, production notes, camera directions, or image instructions unless specifically requested. Most importantly, do not invent historical facts simply to make the story more interesting. When something is uncertain, disputed, legendary, or based on limited evidence, present it appropriately. Maintain continuity with the approved outline and avoid repeating information that belongs in other chapters. Approved Full Outline: [PASTE FULL OUTLINE HERE] Chapter to Write: [PASTE CHAPTER/SECTION HERE] Write approximately 1,000–1,100 words.",
+              "type": "string"
+            },
+            {
+              "id": "76080eb1-07dd-4fdb-83de-8a9fc7bb337e",
+              "name": "image_prompt",
+              "value": "4. Scene + Image Prompt Generation I’m creating visuals for a long-form historical YouTube documentary. I will give you one chapter of the script at a time. Your job is to break that chapter into approximately 15–20 visually useful scenes that can be represented with generated images. The visuals should support the narration and help the video feel like a real historical documentary rather than a slideshow of unrelated pictures. First, identify the important visual moments, locations, people, activities, objects, environments, and events within the chapter. Then create an image-generation prompt for each scene. For each scene, provide: Scene [number] •\tNarration covered: Briefly identify the part of the script this image supports. •\tWhat the image should show: A short explanation of the visual. •\tImage prompt: A detailed prompt that can be used directly in an AI image generator. The prompts should be visually descriptive and historically grounded. Include relevant details such as: •\tApproximate historical period •\tArchitecture •\tClothing •\tObjects and tools •\tWeapons or transportation when relevant •\tSocial setting •\tEnvironment •\tWeather and time of day when useful •\tHuman activities and expressions •\tAppropriate composition and perspective •\tLighting that suits the scene •\tImportant environmental details Use your judgment about the visual approach for each scene. Do not force every image to use the same camera angle, composition, lighting, mood, or visual treatment. The images should have enough variation to keep a long YouTube video visually interesting. Some scenes may be wide establishing shots, while others may focus on people, interiors, objects, landscapes, streets, buildings, battles, work, ceremonies, travel, or small everyday moments depending on what the narration requires. Prioritize historical authenticity and storytelling relevance over simply making every image dramatic. Avoid modern objects, modern clothing, contemporary architecture, fantasy elements, anachronistic technology, or details that clearly do not belong to the period unless the narration specifically requires them. Do not automatically make every scene dark, gloomy, cinematic, dramatic, or epic. Let the subject and moment determine the visual atmosphere. Ordinary historical life can be just as valuable as major events. When people appear, describe them naturally and consistently enough that recurring important characters can remain recognizable across scenes. However, do not force unnecessary character descriptions into scenes where they are not relevant. Avoid excessive visual complexity when a simpler composition would communicate the scene better. Do not generate images. I only need the scene breakdown and prompts. Chapter: [PASTE CHAPTER HERE] Create approximately 15–20 scenes, selecting the number that best fits the actual content of the chapter.",
+              "type": "string"
+            },
+            {
+              "id": "65b3feab-4681-429b-8e43-6c6b3be88301",
+              "name": "image_allocation_rules",
+              "value": "IMPORTANT: DO NOT DISTRIBUTE IMAGES EQUALLY  Do NOT generate the same number of images for every chapter.  The video is designed as a sleep-friendly historical documentary. Viewers are most likely to be awake during the beginning and gradually become less engaged with the screen.  Therefore:  More images in the first chapters → progressively fewer images toward the end.  The narration remains continuous throughout the entire video. Images are only visual support.  IMAGE ALLOCATION  For a typical 15-chapter / 15,000-word story, use approximately this distribution:  CHAPTERS 1–3 — VERY HIGH IMAGE DENSITY  Generate approximately 10–12 image prompts per chapter.  These chapters should establish:  - Characters - Locations - Historical setting - Architecture - Clothing - Environment - Important objects - Major visual situations  Try to create a new visual idea approximately every 80–120 words, but prioritize meaningful scene changes over an exact word count.  CHAPTERS 4–5 — HIGH IMAGE DENSITY  Generate approximately 8–10 image prompts per chapter.  Continue visually illustrating important scenes, characters, activities, environments, and historical details.  The visuals can begin becoming slightly more atmospheric.  CHAPTERS 6–8 — MODERATE IMAGE DENSITY  Generate approximately 5–7 image prompts per chapter.  Do not create an image for every small narrative detail.  Instead, select the strongest visual moments and allow individual images to represent longer portions of narration.  Prioritize:  - Major scenes - Changes in location - Important historical events - Character interactions - Strong atmospheric moments  CHAPTERS 9–10 — LOW IMAGE DENSITY  Generate approximately 3–4 image prompts per chapter.  Focus primarily on atmospheric and establishing imagery.  Images can remain relevant for a long section of narration.  Examples:  - A quiet historical village - A candlelit interior - A farmhouse at night - A historical street - A landscape - People resting or working quietly - A distant view of the setting  CHAPTERS 11–15 — VERY LOW IMAGE DENSITY  Generate approximately 1–3 image prompts per chapter.  These chapters should be visually sparse because the viewer may already be falling asleep.  Do NOT try to illustrate every paragraph.  Use beautiful, calm, atmospheric images that can remain on screen for several minutes.  Prioritize:  - Wide establishing shots - Quiet landscapes - Night scenes - Historical homes - Candlelit rooms - Sleeping villages - Calm interiors - Empty roads - Stars, moonlight, fireplaces, or other appropriate atmospheric elements  If a chapter does not contain a strong visual moment, create fewer images rather than inventing unnecessary scenes.  APPROXIMATE TOTAL  For a typical 15,000-word / 15-chapter video, the target should be approximately:  - Chapters 1–3: 30–36 images - Chapters 4–5: 16–20 images - Chapters 6–8: 15–21 images - Chapters 9–10: 6–8 images - Chapters 11–15: 5–15 images  This produces roughly 72–100 images for the entire video, depending on the story.  Do NOT force the output to reach a specific number if the story does not justify it.  MOST IMPORTANT RULE: FOLLOW THE STORY  Image allocation is a guideline, not a rigid mathematical requirement.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1360,
+        -192
+      ],
+      "id": "4282c031-e1c3-4de2-ace0-911d9888548a",
+      "name": "Prompt Library"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst source = items[0].json;\n\n// Get AI Agent output\nlet outline = source.output || source.text || source.response || \"\";\n\n// If output is an object, convert it to text\nif (typeof outline !== \"string\") {\n  outline = JSON.stringify(outline);\n}\n\n// Fallback: find the largest text field\nif (!outline) {\n  for (const [key, value] of Object.entries(source)) {\n    if (typeof value === \"string\" && value.length > 300) {\n      outline = value;\n      break;\n    }\n  }\n}\n\nif (!outline) {\n  throw new Error(\"Could not find the Outline Agent output.\");\n}\n\n// Normalize line endings\noutline = outline.replace(/\\r\\n/g, \"\\n\");\n\n// ----------------------------------------------------\n// FIND CHAPTER HEADINGS\n// Handles formats such as:\n//\n// Chapter 1: The Enchanted Illusion\n// Chapter 1 — The Enchanted Illusion\n// 1. The Enchanted Illusion\n// 1. The Enchanted Illusion — What We Think We Know\n// **1. The Enchanted Illusion**\n// ## Chapter 1: The Enchanted Illusion\n// ### 1. The Enchanted Illusion\n// ----------------------------------------------------\n\nconst headingRegex =\n  /^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*(?:Chapter\\s*)?(\\d{1,2})\\s*[\\.\\:\\-\\—\\–]\\s*(.+?)(?:\\*\\*)?\\s*$/gim;\n\nconst matches = [...outline.matchAll(headingRegex)];\n\nconst chapters = [];\n\nfor (let i = 0; i < matches.length; i++) {\n\n  const match = matches[i];\n\n  const chapterNumber = parseInt(match[1], 10);\n  const title = match[2]\n    .replace(/\\*\\*/g, \"\")\n    .trim();\n\n  if (chapterNumber < 1 || chapterNumber > 30) {\n    continue;\n  }\n\n  const start = match.index + match[0].length;\n\n  const end =\n    i + 1 < matches.length\n      ? matches[i + 1].index\n      : outline.length;\n\n  let chapterContent = outline\n    .slice(start, end)\n    .trim();\n\n  // Remove excessive blank lines\n  chapterContent = chapterContent.replace(/\\n{3,}/g, \"\\n\\n\");\n\n  // Try to find approximate word count\n  const wordMatch = chapterContent.match(\n    /(?:approx(?:imate)?\\s*)?word\\s*count\\s*[:\\-]?\\s*~?\\s*([\\d,]+)/i\n  );\n\n  const wordCount = wordMatch\n    ? parseInt(wordMatch[1].replace(/,/g, \"\"), 10)\n    : null;\n\n  chapters.push({\n    chapter_number: chapterNumber,\n    title: title,\n    outline: chapterContent,\n    approx_word_count: wordCount\n  });\n}\n\n// Remove duplicates\nconst seen = new Set();\n\nconst uniqueChapters = chapters.filter(chapter => {\n\n  if (seen.has(chapter.chapter_number)) {\n    return false;\n  }\n\n  seen.add(chapter.chapter_number);\n  return true;\n});\n\n// Sort by chapter number\nuniqueChapters.sort(\n  (a, b) => a.chapter_number - b.chapter_number\n);\n\n// ----------------------------------------------------\n// IMPORTANT:\n// If nothing was detected, return diagnostic information\n// instead of hiding the problem.\n// ----------------------------------------------------\n\nif (uniqueChapters.length === 0) {\n\n  return [{\n    json: {\n      ERROR: \"No chapters detected\",\n      available_fields: Object.keys(source),\n      output_preview: outline.substring(0, 3000)\n    }\n  }];\n}\n\n// Return one item per chapter\nreturn uniqueChapters.map(chapter => ({\n  json: {\n    topic: source.topic || \"\",\n    chapter_number: chapter.chapter_number,\n    title: chapter.title,\n    outline: chapter.outline,\n    approx_word_count: chapter.approx_word_count\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        -192
+      ],
+      "id": "75b91f29-9d57-427d-955b-9d525f04fa99",
+      "name": "Split Chapters"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "chapters",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        -192
+      ],
+      "id": "16184890-3d1b-4702-bbc1-d97fedb6ca9c",
+      "name": "Total / Collect Chapters"
+    },
+    {
+      "parameters": {
+        "jsCode": "const topicData = $('Prompt Library').first().json;\nconst finalScriptData = $('Final Script Writer').first().json;\nconst imageData = $('Image Prompt Generator').first().json;\n\nconst topic = topicData.chatInput || \"Untitled Project\";\n\nconst safeName = topic\n  .replace(/[<>:\"/\\\\|?*]/g, \"\")\n  .replace(/\\s+/g, \" \")\n  .trim()\n  .substring(0, 120) || \"Untitled Project\";\n\nconst projectPath =\n  `/home/node/.n8n/YouTubeProjects/${safeName}`;\n\nconst finalScript =\n  finalScriptData.output ||\n  finalScriptData.text ||\n  finalScriptData.final_script ||\n  finalScriptData.script ||\n  \"\";\n\nconst imagePrompts =\n  imageData.output ||\n  imageData.text ||\n  imageData.image_prompts ||\n  \"\";\n\nif (!finalScript) {\n  throw new Error(\"Final Script Writer returned no script.\");\n}\n\nif (!imagePrompts) {\n  throw new Error(\"Image Prompt Generator returned no image prompts.\");\n}\n\nreturn [\n  {\n    json: {\n      topic,\n      project_name: safeName,\n      project_path: projectPath,\n\n      script_filename: \"final_script.txt\",\n      image_filename: \"image_prompt.csv\",\n\n      final_script: finalScript,\n      image_prompts: imagePrompts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3312,
+        -64
+      ],
+      "id": "21834610-244e-4f6e-b143-f61b1880fae9",
+      "name": "Prepare Project Files"
+    },
+    {
+      "parameters": {
+        "url": "http://searxng:8080",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.chatInput }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "safesearch",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1504,
+        -192
+      ],
+      "id": "1b8948ba-5197-4c6d-a149-626fff6b12cf",
+      "name": "Research"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3136,
+        -64
+      ],
+      "id": "064be52c-5815-4cae-a20a-1a7f1ef43686",
+      "name": "Merge Final Script + Image Prompts"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        -32
+      ],
+      "id": "c0512516-0734-46c5-ad27-bcf456b31d04",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9qqYI6Uf9mZ2xbcW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2800,
+        -32
+      ],
+      "id": "68cef45a-48f1-48e6-9b09-dba894f7e799",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YYfdvgjsOtMnnKWS",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2800,
+        256
+      ],
+      "id": "c18caf13-75eb-4fc2-8376-8bf98d03e51f",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9qqYI6Uf9mZ2xbcW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\n\nconst data = $input.first().json;\n\nif (!data.project_path) {\n  throw new Error('Project path is missing.');\n}\n\nfs.mkdirSync(data.project_path, {\n  recursive: true,\n  mode: 0o755\n});\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3504,
+        -64
+      ],
+      "id": "16e991e8-301a-4eab-9be7-2e94d5e9f759",
+      "name": "Create Project Folder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\n\nconst data = $input.first().json;\n\nconst projectPath = data.project_path;\nconst finalScript = data.final_script || '';\nconst imageText = data.image_prompts || '';\nconst topic = data.topic || 'Untitled Project';\n\nif (!projectPath) {\n  throw new Error('Project path is missing.');\n}\n\nif (!finalScript) {\n  throw new Error('Final script is empty.');\n}\n\nif (!imageText) {\n  throw new Error('Image prompts are empty.');\n}\n\n\n// ============================================================\n// CREATE PROJECT FOLDER\n// ============================================================\n\nfs.mkdirSync(projectPath, {\n  recursive: true\n});\n\n\n// ============================================================\n// LOCK-SAFE WRITE HELPER\n// ============================================================\n// Writes to a temp file first, then atomically renames it onto the\n// real destination. If the rename fails with EACCES / EBUSY / EPERM\n// (typical when the destination is open in Excel/another program via\n// a Windows bind mount) we do NOT retry the same destination - we\n// fall back to a unique, timestamped filename in the SAME directory\n// instead of failing the workflow.\n\nconst LOCK_ERROR_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);\n\nfunction isLockError(err) {\n  return !!err && LOCK_ERROR_CODES.has(err.code);\n}\n\nfunction timestampSuffix() {\n  const d = new Date();\n  const pad = (n) => String(n).padStart(2, '0');\n  return (\n    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` +\n    `_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`\n  );\n}\n\nfunction uniqueFallbackPath(dir, baseName, ext) {\n  const suffix = timestampSuffix();\n  let candidate = `${dir}/${baseName}_${suffix}${ext}`;\n  let attempt = 1;\n\n  // Guard against two fallbacks landing on the same filename\n  // (same-second writes, or a leftover fallback from a prior run).\n  while (fs.existsSync(candidate)) {\n    attempt += 1;\n    candidate = `${dir}/${baseName}_${suffix}_${attempt}${ext}`;\n  }\n\n  return candidate;\n}\n\nfunction safeWriteFile(dir, baseName, ext, content, writeOptions) {\n  const finalPath = `${dir}/${baseName}${ext}`;\n  const tempPath = `${dir}/.${baseName}.${Date.now()}.${Math.random()\n    .toString(36)\n    .slice(2)}.${Math.random().toString(36).slice(2)}.tmp`;\n\n  let writtenPath = finalPath;\n  let usedFallback = false;\n\n  try {\n    fs.writeFileSync(tempPath, content, writeOptions);\n\n    try {\n      fs.renameSync(tempPath, finalPath);\n      writtenPath = finalPath;\n    } catch (renameErr) {\n      if (!isLockError(renameErr)) {\n        throw renameErr;\n      }\n\n      const fallbackPath = uniqueFallbackPath(dir, baseName, ext);\n      fs.renameSync(tempPath, fallbackPath);\n      writtenPath = fallbackPath;\n      usedFallback = true;\n    }\n  } finally {\n    if (fs.existsSync(tempPath)) {\n      try {\n        fs.unlinkSync(tempPath);\n      } catch (cleanupErr) {\n        // Never fail the workflow over a leftover temp file.\n      }\n    }\n  }\n\n  return {\n    path: writtenPath,\n    filename: writtenPath.split('/').pop(),\n    usedFallback\n  };\n}\n\n\n// ============================================================\n// SAVE FINAL SCRIPT (lock-safe)\n// ============================================================\n\nconst scriptResult = safeWriteFile(projectPath, 'final_script', '.txt', finalScript, 'utf8');\n\n\n// ============================================================\n// PARSE IMAGE PROMPTS  (unchanged)\n// ============================================================\n\nconst lines = imageText.split(/\\r?\\n/);\n\nconst rows = [];\n\nlet current = null;\nlet currentChapter = '';\nlet insidePrompt = false;\n\n\nfunction cleanText(text) {\n  return String(text || '')\n    .replace(/\\*\\*/g, '')\n    .replace(/`/g, '')\n    .trim();\n}\n\n\nfunction saveCurrentScene() {\n\n  if (!current) {\n    return;\n  }\n\n  if (!current.prompt.trim()) {\n    throw new Error(\n      `Scene ${current.shot} does not contain an Image prompt.`\n    );\n  }\n\n  rows.push({\n    chapter: current.chapter || currentChapter || '',\n    shot: current.shot,\n    character: current.character || '',\n    prompt: current.prompt.trim()\n  });\n}\n\n\nfor (const rawLine of lines) {\n\n  const line = rawLine.trim();\n\n  if (!line) {\n    continue;\n  }\n\n  const sceneMatch = line.match(\n    /^(?:#+\\s*)?(?:[•>*\\-]\\s*)*Scene\\s+(\\d+)/i\n  );\n\n  if (sceneMatch) {\n\n    saveCurrentScene();\n\n    current = {\n      chapter: currentChapter,\n      shot: Number(sceneMatch[1]),\n      character: '',\n      prompt: ''\n    };\n\n    insidePrompt = false;\n\n    continue;\n  }\n\n  if (!current) {\n    continue;\n  }\n\n  const chapterField = line.match(\n    /^(?:[•>*\\-]\\s*)*(?:\\*\\*)?\\s*Chapter\\s*(?:\\*\\*)?\\s*:\\s*(.*)$/i\n  );\n\n  if (chapterField) {\n    current.chapter = cleanText(chapterField[1]);\n    currentChapter = current.chapter;\n    insidePrompt = false;\n    continue;\n  }\n\n  const chapterHeading = line.match(\n    /^(?:#+\\s*)?Chapter\\s+(\\d+)(?:\\s*[:\\-]\\s*(.*))?$/i\n  );\n\n  if (chapterHeading) {\n    currentChapter =\n      `Chapter ${chapterHeading[1]}` +\n      (\n        chapterHeading[2]\n          ? `: ${cleanText(chapterHeading[2])}`\n          : ''\n      );\n    current.chapter = currentChapter;\n    insidePrompt = false;\n    continue;\n  }\n\n  const characterField = line.match(\n    /^(?:[•>*\\-]\\s*)*(?:\\*\\*)?\\s*Character\\s*(?:\\*\\*)?\\s*:\\s*(.*)$/i\n  );\n\n  if (characterField) {\n    current.character = cleanText(characterField[1]);\n    insidePrompt = false;\n    continue;\n  }\n\n  const promptField = line.match(\n    /^(?:[•>*\\-]\\s*)*(?:\\*\\*)?\\s*Image\\s+prompt\\s*(?:\\*\\*)?\\s*:\\s*(.*)$/i\n  );\n\n  if (promptField) {\n    current.prompt = cleanText(promptField[1]);\n    insidePrompt = true;\n    continue;\n  }\n\n  const ignoredField = line.match(\n    /^(?:[•>*\\-]\\s*)*(?:\\*\\*)?\\s*(Narration covered|What the image should show)\\s*(?:\\*\\*)?\\s*:/i\n  );\n\n  if (ignoredField) {\n    insidePrompt = false;\n    continue;\n  }\n\n  if (insidePrompt) {\n    const continuation = cleanText(line);\n    if (continuation) {\n      current.prompt +=\n        (current.prompt ? ' ' : '') +\n        continuation;\n    }\n  }\n}\n\nsaveCurrentScene();\n\nif (rows.length === 0) {\n  throw new Error(\n    'No scenes were found in the Image Prompt Generator output.'\n  );\n}\n\nfunction csvEscape(value) {\n  if (value === null || value === undefined) {\n    return '\"\"';\n  }\n\n  const text = String(value)\n    .replace(/\\r?\\n/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  return `\"${text.replace(/\"/g, '\"\"')}\"`;\n}\n\nconst headers = ['chapter', 'shot', 'character', 'prompt'];\n\nconst csvLines = [headers.map(csvEscape).join(',')];\n\nfor (const row of rows) {\n  csvLines.push([\n    row.chapter,\n    row.shot,\n    row.character,\n    row.prompt\n  ].map(csvEscape).join(','));\n}\n\nconst csvContent =\n  '\\uFEFF' +\n  csvLines.join('\\r\\n');\n\n\n// ============================================================\n// SAVE CSV (lock-safe)\n// ============================================================\n\nconst csvResult = safeWriteFile(projectPath, 'image_prompt', '.csv', csvContent, { encoding: 'utf8' });\n\n\n// ============================================================\n// RETURN RESULT\n// ============================================================\n\nreturn [\n  {\n    json: {\n      topic,\n      project_name: data.project_name,\n      project_path: projectPath,\n\n      script_filename: scriptResult.filename,\n      image_filename: csvResult.filename,\n\n      script_path: scriptResult.path,\n      image_csv_path: csvResult.path,\n\n      script_fallback_used: scriptResult.usedFallback,\n      image_fallback_used: csvResult.usedFallback,\n\n      scene_count: rows.length,\n\n      status: 'Files saved successfully'\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3696,
+        -64
+      ],
+      "id": "ffd58b02-a02c-4388-bffc-2efe0495a90f",
+      "name": "Save Project Files"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2096,
+        -48
+      ],
+      "id": "4ee70b38-f530-46a0-b3f2-0b97370cd3d1",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "whGCNVvlhll4qwQH",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Prompt Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chapter Writer": {
+      "main": [
+        [
+          {
+            "node": "Total / Collect Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outline Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Script Writer": {
+      "main": [
+        [
+          {
+            "node": "Image Prompt Generator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Final Script + Image Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Prompt Generator": {
+      "main": [
+        [
+          {
+            "node": "Merge Final Script + Image Prompts",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare Final Script Input": {
+      "main": [
+        [
+          {
+            "node": "Final Script Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Library": {
+      "main": [
+        [
+          {
+            "node": "Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Chapters": {
+      "main": [
+        [
+          {
+            "node": "Chapter Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Total / Collect Chapters": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Script Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research": {
+      "main": [
+        [
+          {
+            "node": "Outline Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Project Files": {
+      "main": [
+        [
+          {
+            "node": "Create Project Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Final Script + Image Prompts": {
+      "main": [
+        [
+          {
+            "node": "Prepare Project Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Outline Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Final Script Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Image Prompt Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Project Folder": {
+      "main": [
+        [
+          {
+            "node": "Save Project Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Chapter Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "86f00717-80f2-4427-aea9-57978bde4081",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "nodeGroups": [],
+  "id": "tpSAj9Md3wicQinv",
+  "tags": []
+}

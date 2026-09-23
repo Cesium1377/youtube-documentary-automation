@@ -1,0 +1,60 @@
+version: "3.8"
+
+# ISOLATED TEST STACK for "YouTube Documentary Automation"
+# ----------------------------------------------------------
+# This file is completely separate from any existing n8n docker-compose
+# setup. It does not reference, extend, or depend on any existing
+# container, network, or volume. Every name below is unique on purpose
+# so it cannot collide with an existing "n8n" container/network.
+#
+# Host requirements before running:
+#   H:\YouTubeDocumentaryTest\n8n-data          (empty, new volume for this test n8n)
+#   H:\YouTubeDocumentaryTest\youtube-projects   (empty, output folder for generated files)
+#
+# Run with:
+#   docker compose -f docker-compose.test.yml up -d
+#
+# This starts ONLY youtube-doc-test-n8n and youtube-doc-test-searxng.
+# It does not start, stop, or touch any other container on your machine.
+
+services:
+  youtube-doc-test-n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: youtube-doc-test-n8n
+    restart: "no"
+    ports:
+      # Host 5679 -> container 5678. Your existing n8n (host 5678) is untouched.
+      - "5679:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=UTC
+    volumes:
+      # Bind-mounted to the NEW test directories only - never your existing H:\n8n.
+      - "H:/YouTubeDocumentaryTest/n8n-data:/home/node/.n8n"
+      - "H:/YouTubeDocumentaryTest/youtube-projects:/home/node/.n8n/YouTubeProjects"
+    networks:
+      - youtube-documentary-test-net
+    depends_on:
+      - youtube-doc-test-searxng
+
+  youtube-doc-test-searxng:
+    image: searxng/searxng:latest
+    container_name: youtube-doc-test-searxng
+    restart: "no"
+    # Not published to the host - only youtube-doc-test-n8n needs to reach
+    # it, over the internal test network at http://searxng:8080.
+    volumes:
+      - "H:/YouTubeDocumentaryTest/searxng-data:/etc/searxng"
+    networks:
+      youtube-documentary-test-net:
+        # This alias is what makes the workflow's existing
+        # "http://searxng:8080" URL resolve with zero JSON edits.
+        aliases:
+          - searxng
+
+networks:
+  youtube-documentary-test-net:
+    name: youtube-documentary-test-net
+    driver: bridge
